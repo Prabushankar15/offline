@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline Study Vault</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div>
+          <h1>Study Vault</h1>
+          <p>Offline Coding Notes</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <h2>Categories</h2>
+        <ul id="categoryList"></ul>
+      </nav>
+
+      <div class="quick">
+        <div class="quick-header">
+          <h2>Quick Revision</h2>
+          <button id="btnShuffle" class="ghost">Shuffle</button>
+        </div>
+        <div id="quickCards" class="quick-cards"></div>
+      </div>
+
+      <div class="sidebar-actions">
+        <button id="btnExport" class="primary">Export JSON</button>
+        <label class="file-label">
+          Import JSON
+          <input id="importInput" type="file" accept="application/json" />
+        </label>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search">
+          <span class="search-icon">⌕</span>
+          <input id="searchInput" type="text" placeholder="Search code, notes, titles..." />
+          <span class="shortcut">Ctrl + K</span>
+        </div>
+        <div class="top-actions">
+          <button id="btnAdd" class="primary">Add New Code</button>
+          <button id="btnToggleFav" class="ghost">Favorite</button>
+          <button id="btnCopy" class="ghost">Copy Code</button>
+          <button id="btnDelete" class="danger">Delete</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <div class="list-panel">
+          <div class="list-header">
+            <h2>My Snippets</h2>
+            <div class="meta" id="snippetCount">0 items</div>
+          </div>
+          <div id="snippetList" class="snippet-list"></div>
+        </div>
+
+        <div class="editor-panel" id="editorPanel">
+          <div class="editor-header">
+            <div class="editor-title">
+              <input id="titleInput" type="text" placeholder="Snippet title" />
+              <select id="categorySelect"></select>
+            </div>
+            <div class="editor-meta">
+              <span id="lastSaved">Not saved yet</span>
+              <span class="autosave">Autosave</span>
+              <span class="shortcut">Ctrl + S</span>
+            </div>
+          </div>
+
+          <div class="editor-body">
+            <label>Code</label>
+            <textarea id="codeInput" class="code-area" placeholder="Paste or type your code here..."></textarea>
+
+            <label>Notes</label>
+            <textarea id="notesInput" class="notes-area" placeholder="Add explanation, steps, or reminders..."></textarea>
+          </div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <h2>Pick a snippet to start</h2>
+          <p>Create a new code note or select one from the list.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
