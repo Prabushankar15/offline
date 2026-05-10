@@ -39,7 +39,8 @@ const el = {
   importInput: document.getElementById("importInput"),
   btnShuffle: document.getElementById("btnShuffle"),
   pdfInput: document.getElementById("pdfInput"),
-  pdfList: document.getElementById("pdfList")
+  pdfList: document.getElementById("pdfList"),
+  pdfImportInput: document.getElementById("pdfImportInput")
 };
 
 let autosaveTimer = null;
@@ -517,6 +518,7 @@ function initEvents() {
   el.btnExport.addEventListener("click", handleExport);
   el.importInput.addEventListener("change", handleImport);
   el.pdfInput.addEventListener("change", handlePdfImport);
+  el.pdfImportInput.addEventListener("change", handlePdfImport);
   el.btnShuffle.addEventListener("click", shuffleQuickCards);
 
   document.addEventListener("keydown", (event) => {
