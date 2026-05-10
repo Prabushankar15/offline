@@ -1,4 +1,7 @@
 const STORAGE_KEY = "offlineStudySnippets";
+const PDF_DB_NAME = "studyVaultFiles";
+const PDF_DB_VERSION = 1;
+const PDF_STORE_NAME = "pdfs";
 
 const categories = [
   "All",
@@ -12,6 +15,8 @@ const state = {
   category: "All",
   search: ""
 };
+
+let pdfDbPromise = null;
 
 const el = {
   categoryList: document.getElementById("categoryList"),
@@ -32,10 +37,55 @@ const el = {
   btnToggleFav: document.getElementById("btnToggleFav"),
   btnExport: document.getElementById("btnExport"),
   importInput: document.getElementById("importInput"),
-  btnShuffle: document.getElementById("btnShuffle")
+  btnShuffle: document.getElementById("btnShuffle"),
+  pdfInput: document.getElementById("pdfInput"),
+  pdfList: document.getElementById("pdfList")
 };
 
 let autosaveTimer = null;
+
+function getPdfDb() {
+  if (pdfDbPromise) return pdfDbPromise;
+  pdfDbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(PDF_DB_NAME, PDF_DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(PDF_STORE_NAME)) {
+        db.createObjectStore(PDF_STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  return pdfDbPromise;
+}
+
+function putPdfBlob(id, blob) {
+  return getPdfDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE_NAME, "readwrite");
+    tx.objectStore(PDF_STORE_NAME).put(blob, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+function getPdfBlob(id) {
+  return getPdfDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE_NAME, "readonly");
+    const request = tx.objectStore(PDF_STORE_NAME).get(id);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  }));
+}
+
+function deletePdfBlob(id) {
+  return getPdfDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE_NAME, "readwrite");
+    tx.objectStore(PDF_STORE_NAME).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
 
 function saveToStorage() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.snippets));
@@ -76,6 +126,7 @@ function createSnippet() {
     category: "Custom Notes",
     code: "",
     notes: "",
+    pdfs: [],
     favorite: false,
     createdAt: now,
     updatedAt: now
@@ -97,6 +148,7 @@ function setActive(id) {
   if (!snippet) {
     el.editorPanel.classList.remove("active");
     el.emptyState.classList.add("active");
+    renderPdfList();
     return;
   }
 
@@ -108,6 +160,7 @@ function setActive(id) {
   el.notesInput.value = snippet.notes;
   el.lastSaved.textContent = `Saved ${formatTime(snippet.updatedAt)}`;
   el.btnToggleFav.textContent = snippet.favorite ? "Unfavorite" : "Favorite";
+  renderPdfList();
   renderList();
 }
 
@@ -227,6 +280,54 @@ function renderQuickCards() {
   });
 }
 
+function renderPdfList() {
+  if (!el.pdfList) return;
+  const snippet = getActive();
+  el.pdfList.innerHTML = "";
+  if (!snippet || !Array.isArray(snippet.pdfs) || snippet.pdfs.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "pdf-empty";
+    empty.textContent = "No PDFs yet.";
+    el.pdfList.appendChild(empty);
+    return;
+  }
+
+  snippet.pdfs.forEach((pdf) => {
+    const row = document.createElement("div");
+    row.className = "pdf-item";
+
+    const info = document.createElement("div");
+    info.className = "pdf-info";
+
+    const name = document.createElement("span");
+    name.textContent = pdf.name || "PDF";
+
+    const meta = document.createElement("span");
+    meta.className = "pdf-meta";
+    meta.textContent = formatTime(pdf.addedAt);
+
+    info.append(name, meta);
+
+    const actions = document.createElement("div");
+    actions.className = "pdf-actions";
+
+    const openBtn = createMiniButton("Open", async () => {
+      await openPdfFromStore(pdf.id, pdf.name);
+    });
+    const downloadBtn = createMiniButton("Download", async () => {
+      await downloadPdfFromStore(pdf.id, pdf.name);
+    });
+    const deleteBtn = createMiniButton("Remove", async () => {
+      if (!confirm("Remove this PDF?")) return;
+      await removePdfFromSnippet(pdf.id);
+    });
+
+    actions.append(openBtn, downloadBtn, deleteBtn);
+    row.append(info, actions);
+    el.pdfList.appendChild(row);
+  });
+}
+
 function shuffleQuickCards() {
   const shuffled = [...state.snippets].sort(() => Math.random() - 0.5).slice(0, 4);
   el.quickCards.innerHTML = "";
@@ -243,6 +344,7 @@ function renderAll() {
   renderCategories();
   renderList();
   renderQuickCards();
+  renderPdfList();
   const active = getActive();
   if (!active) {
     el.editorPanel.classList.remove("active");
@@ -303,6 +405,85 @@ function handleImport(event) {
   event.target.value = "";
 }
 
+async function handlePdfImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.type !== "application/pdf") {
+    alert("Please select a PDF file.");
+    event.target.value = "";
+    return;
+  }
+
+  const snippet = getActive();
+  if (!snippet) {
+    alert("Select a snippet first.");
+    event.target.value = "";
+    return;
+  }
+
+  const pdfId = crypto.randomUUID();
+  try {
+    await putPdfBlob(pdfId, file);
+    if (!Array.isArray(snippet.pdfs)) snippet.pdfs = [];
+    snippet.pdfs.push({
+      id: pdfId,
+      name: file.name,
+      addedAt: Date.now()
+    });
+    updateActive({ pdfs: snippet.pdfs });
+    renderPdfList();
+  } catch (err) {
+    alert("Could not save PDF.");
+  }
+  event.target.value = "";
+}
+
+async function openPdfFromStore(id, name) {
+  try {
+    const blob = await getPdfBlob(id);
+    if (!blob) {
+      alert("PDF not found in storage.");
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    alert("Unable to open PDF.");
+  }
+}
+
+async function downloadPdfFromStore(id, name) {
+  try {
+    const blob = await getPdfBlob(id);
+    if (!blob) {
+      alert("PDF not found in storage.");
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name || "document.pdf";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    alert("Unable to download PDF.");
+  }
+}
+
+async function removePdfFromSnippet(id) {
+  const snippet = getActive();
+  if (!snippet || !Array.isArray(snippet.pdfs)) return;
+  try {
+    await deletePdfBlob(id);
+    snippet.pdfs = snippet.pdfs.filter((pdf) => pdf.id !== id);
+    updateActive({ pdfs: snippet.pdfs });
+    renderPdfList();
+  } catch (err) {
+    alert("Unable to remove PDF.");
+  }
+}
+
 function initEvents() {
   el.btnAdd.addEventListener("click", handleAdd);
   el.btnDelete.addEventListener("click", () => {
@@ -335,6 +516,7 @@ function initEvents() {
 
   el.btnExport.addEventListener("click", handleExport);
   el.importInput.addEventListener("change", handleImport);
+  el.pdfInput.addEventListener("change", handlePdfImport);
   el.btnShuffle.addEventListener("click", shuffleQuickCards);
 
   document.addEventListener("keydown", (event) => {

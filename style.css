@@ -375,6 +375,66 @@ button.ghost {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
+.pdf-block {
+  display: grid;
+  gap: 10px;
+}
+
+.pdf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.file-label.small {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.pdf-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pdf-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(6, 12, 18, 0.9);
+}
+
+.pdf-info {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.pdf-meta {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.pdf-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pdf-actions button {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+.pdf-empty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 8px 2px;
+}
+
 .empty-state {
   position: absolute;
   inset: 80px 0 0 0;
