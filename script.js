@@ -25,7 +25,6 @@ const el = {
   titleInput: document.getElementById("titleInput"),
   categorySelect: document.getElementById("categorySelect"),
   codeInput: document.getElementById("codeInput"),
-  notesInput: document.getElementById("notesInput"),
   lastSaved: document.getElementById("lastSaved"),
   searchInput: document.getElementById("searchInput"),
   editorPanel: document.getElementById("editorPanel"),
@@ -126,7 +125,6 @@ function createSnippet() {
     title: "Untitled Snippet",
     category: "Custom Notes",
     code: "",
-    notes: "",
     pdfs: [],
     favorite: false,
     createdAt: now,
@@ -158,7 +156,6 @@ function setActive(id) {
   el.titleInput.value = snippet.title;
   el.categorySelect.value = snippet.category;
   el.codeInput.value = snippet.code;
-  el.notesInput.value = snippet.notes;
   el.lastSaved.textContent = `Saved ${formatTime(snippet.updatedAt)}`;
   el.btnToggleFav.textContent = snippet.favorite ? "Unfavorite" : "Favorite";
   renderPdfList();
@@ -211,7 +208,7 @@ function filterSnippets() {
   return state.snippets.filter((snippet) => {
     const matchesCategory = state.category === "All" || snippet.category === state.category;
     const query = state.search.toLowerCase();
-    const haystack = `${snippet.title} ${snippet.code} ${snippet.notes}`.toLowerCase();
+    const haystack = `${snippet.title} ${snippet.code}`.toLowerCase();
     return matchesCategory && haystack.includes(query);
   });
 }
@@ -508,7 +505,6 @@ function initEvents() {
   el.titleInput.addEventListener("input", (e) => updateActive({ title: e.target.value }));
   el.categorySelect.addEventListener("change", (e) => updateActive({ category: e.target.value }));
   el.codeInput.addEventListener("input", (e) => updateActive({ code: e.target.value }));
-  el.notesInput.addEventListener("input", (e) => updateActive({ notes: e.target.value }));
 
   el.searchInput.addEventListener("input", (e) => {
     state.search = e.target.value;
